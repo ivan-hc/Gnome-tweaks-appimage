@@ -4,42 +4,40 @@ concurrency:
   cancel-in-progress: true
 
 on:
+  #schedule:
+  #  - cron: "0 10 * * 1"
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
 
     - name: build
       if: always()
       run: |
-        sudo apt update
-        sudo apt install libfuse2
-        wget https://raw.githubusercontent.com/ivan-hc/Gnome-tweaks-appimage/main/gnome-tweaks-junest.sh
-        chmod a+x ./gnome-tweaks-junest.sh
-        ./gnome-tweaks-junest.sh
+        sudo apt update && sudo apt install desktop-file-utils
+        sudo sysctl -w kernel.apparmor_restrict_unprivileged_unconfined=0
+        sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+        chmod a+x ./*junest.sh
+        ./*junest.sh
         mkdir dist
-        mv *AppImage dist/
-    - uses: gautamkrishnar/keepalive-workflow@v1
-      with:
-        gh_token: ${{ secrets.GH_TOKEN }}
+        mv *AppImage* dist/
     - name: Upload artifact
-      uses: actions/upload-artifact@v1.0.0
+      uses: actions/upload-artifact@v4.4.0
       with:
-        name: Gnome-tweaks-x86_64.AppImage
+        name: AppImage
         path: 'dist'
         
   release:
       needs: [build]
-      permissions: write-all
       runs-on: ubuntu-latest
 
       steps:
-        - uses: actions/download-artifact@v1
+        - uses: actions/download-artifact@v4.1.8
           with:
-            name: Gnome-tweaks-x86_64.AppImage
+            name: AppImage
 
         - name: release
           uses: marvinpinto/action-automatic-releases@latest
@@ -49,6 +47,5 @@ jobs:
             prerelease: false
             draft: false
             files: |
-              Gnome-tweaks-x86_64.AppImage
+              *.AppImage*
             repo_token: ${{ secrets.GITHUB_TOKEN }}
-
